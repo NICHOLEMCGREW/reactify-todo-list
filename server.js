@@ -11,7 +11,7 @@ require('dotenv').config()
 
 // createing variables for database
 let db,
-    dbConnectionStr = process.env.DB_STRING,
+dbConnectionStr = process.env.DB_URI,
     dbName = 'todo-list'
 
 // making sure the database and server are running. 
@@ -33,31 +33,25 @@ app.use(express.json())
 
 // creates landing page that  
 // 
-app.get('/',async (request, response)=>{
-    // finds todos within the collection and turns it into an array
-    const todoItems = await db.collection('todos').find().toArray()
-    // request number of documents in collection that = completed
-    const itemsLeft = await db.collection('todos').countDocuments({completed: false})
-    // request ejs to fill in items and left objects
-    response.render('index.ejs', { items: todoItems, left: itemsLeft })
-    // finding collection in db turn into an array
-    db.collection('todos').find().toArray()
-    // return number of completed that = false
-    .then(data => {
-        db.collection('todos').countDocuments({completed: false})
-        .then(itemsLeft => {
-            //respond with ejs
-            response.render('index.ejs', { items: data, left: itemsLeft })
-        })
-    })
-    //catch errors
-    .catch(error => console.error(error))
-})
+app.get('/api/getTodos', async (request, response) => {
+        // Find todos within the collection and turn it into an array
+        const todoItems = await db.collection('todos').find().toArray()
+        // Respond with JSON data
+        response.json({ items: todoItems })
+
+        // Alternatively, if you want to render an EJS view, you can uncomment the following code:
+        // response.render('index.ejs', { items: todoItems, left: itemsLeft });
+    // } catch (error) {
+    //     console.error('Error during /api/getTodos:', error);
+    //     response.status(500).json({ error: 'Internal Server Error' });
+    // }
+});
+
 
 // '/addTodo' comes from the action on the form
 
 // adding todos
-app.post('/addTodo', (request, response) => {
+app.post('/api/addTodo', (request, response) => {
     //inserting a todo item
     db.collection('todos').insertOne({thing: request.body.todoItem, completed: false})
     // promise chaining
@@ -65,14 +59,14 @@ app.post('/addTodo', (request, response) => {
         // letting user know todo was added
         console.log('Todo Added')
         // redirect to landing page
-        response.redirect('/')
+        response.json(result.ops[0])
     })
     //catch errors
     .catch(error => console.error(error))
 })
 
 // update and marking complete
-app.put('/markComplete', (request, response) => {
+app.put('/api/markComplete', (request, response) => {
     //updating completed items - once you check items as done, completed turns from false to true
     db.collection('todos').updateOne({thing: request.body.itemFromJS},{
         // setting completed as true
@@ -98,7 +92,7 @@ app.put('/markComplete', (request, response) => {
 })
 
 // update on the todos collection 
-app.put('/markUnComplete', (request, response) => {
+app.put('/api/markUnComplete', (request, response) => {
     // looking at the todos collection and updating one
     db.collection('todos').updateOne({thing: request.body.itemFromJS},{
         // setting completed to false
@@ -124,7 +118,7 @@ app.put('/markUnComplete', (request, response) => {
 })
 
 // sending delete request
-app.delete('/deleteItem', (request, response) => {
+app.delete('/api/deleteItem', (request, response) => {
     // delete one from db collection
     db.collection('todos').deleteOne({thing: request.body.itemFromJS})
     // returning promise obj
@@ -140,7 +134,6 @@ app.delete('/deleteItem', (request, response) => {
 })
 
 // express router listening for env connection || defualt port
-app.listen(process.env.PORT || PORT, ()=>{
-    // console logging prot server is running on
-    console.log(`Server running on port ${PORT}`)
-})
+app.listen(process.env.PORT || PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
